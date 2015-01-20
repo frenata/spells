@@ -133,37 +133,43 @@ func ReadAll(filename string, spellMap map[string]Spell) error {
 	return nil
 }
 
-// TODO:
-// DONE 1. create data struct
-// DONE 2. Read in from csv files, populate slice of structs
-// DONE 3. CLI utility to simply type name element and return the details.
-// 4. Filtering commands, show all cantrips, or all rituals, or all wizards...
-// 5. Webapp - 3 column layout? filtering on the right, list of names on the left, data in the middle
-func main() {
-	fmt.Println("Welcome to Spells!")
-	var files = []string{
-		"csv/ranger.csv",
-		"csv/druid.csv",
-		"csv/bard.csv",
-		"csv/cleric.csv",
-		"csv/paladin.csv",
-		"csv/sorcerer.csv",
-		"csv/wizard.csv",
-		"csv/warlock.csv",
-	}
-
-	spellMap := make(map[string]Spell)
-
-	for _, f := range files {
-		err := ReadAll(f, spellMap)
+func loadSpells(spellMap map[string]Spell, filename string, pre bool) error {
+	if !pre {
+		err := ReadAll(filename, spellMap)
 		if err != nil {
 			fmt.Println(err)
+			return err
 		}
 	}
 
+	if pre {
+		var files = []string{
+			"csv/ranger.csv",
+			"csv/druid.csv",
+			"csv/bard.csv",
+			"csv/cleric.csv",
+			"csv/paladin.csv",
+			"csv/sorcerer.csv",
+			"csv/wizard.csv",
+			"csv/warlock.csv",
+		}
+
+		for _, f := range files {
+			err := ReadAll(f, spellMap)
+			if err != nil {
+				fmt.Println(err)
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func cliInput(spellMap map[string]Spell) {
+	var filters []string
 	cliReader := bufio.NewReader(os.Stdin)
 	for {
-		fmt.Println("Please enter a spell.")
+		fmt.Println("Please enter a command.")
 		input, err := cliReader.ReadString('\n')
 		if err != nil {
 			fmt.Println(err)
@@ -171,10 +177,36 @@ func main() {
 		}
 		input = strings.TrimSpace(input)
 
-		switch input {
-		case "exit":
+		switch {
+		case input == "help":
+			fmt.Println("exit - exits program")
+			fmt.Println("load filename - loads csv file into memory")
+			fmt.Println("filter request - filters the list according to request")
+			fmt.Println("list - prints current filter list")
+			fmt.Println("spellname - prints spell information")
+		case input == "exit":
 			fmt.Println("Exiting program, sir.")
 			return
+		case strings.HasPrefix(input, "load "):
+			input = strings.TrimPrefix(input, "load ")
+			fmt.Printf("Loading... %v\n", input)
+			if input == "pre" {
+				loadSpells(spellMap, "", true)
+			} else {
+				loadSpells(spellMap, input, false)
+			}
+		case strings.HasPrefix(input, "filter "):
+			input = strings.TrimPrefix(input, "filter ")
+			if input == "clear" {
+				filters = []string{}
+				fmt.Println("Clearing filtered list.")
+			} else {
+				filters = append(filters, input)
+				fmt.Printf("Filtering... %v\n", filters)
+			}
+		case input == "list":
+			fmt.Printf("Filters: %v\n", filters)
+			fmt.Println(filterList(spellMap, filters))
 		default:
 			s, ok := spellMap[input]
 			if ok {
@@ -185,5 +217,84 @@ func main() {
 
 		}
 	}
+}
 
+func filterList(spellMap map[string]Spell, filters []string) (output string) {
+	fMap := make(map[string]Spell)
+
+	var test bool
+	for n, s := range spellMap {
+		test = true
+	spellmap:
+		for _, f := range filters {
+			//f = strings.TrimSpace(f)
+			num, err := strconv.Atoi(f)
+			if err != nil {
+				num = -1
+			}
+			switch {
+			case f == "ritual":
+				if !s.Ritual {
+					test = false
+					break spellmap
+				}
+			case f == "concentration":
+				if !s.Concentration {
+					test = false
+					break spellmap
+				}
+			case strings.HasPrefix(f, "school "):
+				f = strings.TrimPrefix(f, "school ")
+				if s.School != f {
+					test = false
+					break spellmap
+				}
+			case strings.HasPrefix(f, "class "):
+				f = strings.TrimPrefix(f, "class ")
+				classMatch := false
+				for _, c := range s.Class {
+					if c == f {
+						classMatch = true
+						break
+					}
+				}
+				if !classMatch {
+					test = false
+					break spellmap
+				}
+			case num >= 0 && num <= 9:
+				//fmt.Println("test")
+				if s.Level != num {
+					test = false
+					break spellmap
+				}
+			}
+		}
+		if test {
+			fMap[n] = s
+		}
+	}
+
+	for _, f := range fMap {
+		output += fmt.Sprintf("%v\n\n", f)
+	}
+	return output
+}
+
+// TODO:
+// DONE 1. create data struct
+// DONE 2. Read in from csv files, populate slice of structs
+// DONE 3. CLI utility to simply type name element and return the details.
+// 4. Filtering commands, show all cantrips, or all rituals, or all wizards...
+// 5. Webapp - 3 column layout? filtering on the right, list of names on the left, data in the middle
+func main() {
+	fmt.Println("Welcome to Spells!")
+	spellMap := make(map[string]Spell)
+
+	/*if err := loadSpells(spellMap, "", true); err != nil {
+		fmt.Println(err)
+		return
+	}*/
+
+	cliInput(spellMap)
 }
