@@ -195,9 +195,11 @@ func cliInput(spellMap map[string]Spell) {
 			} else {
 				loadSpells(spellMap, input, false)
 			}
-		case strings.HasPrefix(input, "filter "):
+		case strings.HasPrefix(input, "filter"):
 			input = strings.TrimPrefix(input, "filter ")
-			if input == "clear" {
+			if input == "filter" {
+				fmt.Printf("Filters: %v\n", filters)
+			} else if input == "clear" {
 				filters = []string{}
 				fmt.Println("Clearing filtered list.")
 			} else {
