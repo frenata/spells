@@ -15,6 +15,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -63,6 +64,9 @@ func (s Spell) String() string {
 // Reads a single line of csv
 func read(reader *csv.Reader) (s Spell, e error) {
 	record, err := reader.Read()
+
+	// For both these errors, add better context information for returning, plus check possible error conditions
+	// for other fields
 	if err != nil {
 		return s, err
 	}
@@ -114,6 +118,7 @@ func ReadAll(filename string, spellMap map[string]Spell) error {
 	reader.Comma = ';'
 	reader.TrimLeadingSpace = true
 	reader.LazyQuotes = true
+	reader.FieldsPerRecord = 8
 
 	for {
 		class := strings.TrimSuffix(path.Base(filename), ".csv")
@@ -122,7 +127,10 @@ func ReadAll(filename string, spellMap map[string]Spell) error {
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			return err
+			// read() should return more context, and ReadAll should add filename context.
+			// Print enough information that user can see exactly where the csv is malformed.
+			fmt.Println(err)
+			continue //Don't quit reading the file just because of one error.
 		} else {
 			s.Class = append(s.Class, strings.Title(class))
 		}
@@ -171,6 +179,7 @@ func loadSpells(spellMap map[string]Spell, filename string, pre bool) error {
 }
 
 func cliInput(spellMap map[string]Spell) {
+	var sortF string = "name"
 	var filters []string
 	cliReader := bufio.NewReader(os.Stdin)
 	for {
@@ -186,17 +195,29 @@ func cliInput(spellMap map[string]Spell) {
 		case input == "help" || input == "h":
 			fmt.Println("  exit              - exits program")
 			fmt.Println("  load 'filename'   - loads csv file into memory")
-			fmt.Println("  spellname         - prints spell information")
+			fmt.Println("  'spellname'       - prints spell information")
 			fmt.Println("  list              - prints current filter list")
+			fmt.Println("  sort              - directs the program how to sort Spells")
 			fmt.Println("  filter            - filters the list according to request")
 			fmt.Println("  help              - prints this help")
+		case strings.HasPrefix(input, "sort"):
+			if input == "sort" {
+				fmt.Println("  Enter 'sort name' to sort spells by name. (default)")
+				fmt.Println("  Enter 'sort level' to sort spells first by level, then by name.")
+			} else if input == "sort name" {
+				sortF = "name"
+				fmt.Println("Now sorting by name.")
+			} else if input == "sort level" {
+				sortF = "level"
+				fmt.Println("Now sorting by level.")
+			}
 		case input == "exit" || input == "quit" || input == "q" || input == "x":
 			fmt.Println("Exiting program, sir.")
 			return
 		case strings.HasPrefix(input, "load "):
 			input = strings.TrimPrefix(input, "load ")
 			fmt.Printf("Loading... %v\n", input)
-			if input == "pre" {
+			if input == "dnd" {
 				loadSpells(spellMap, "", true)
 			} else {
 				loadSpells(spellMap, input, false)
@@ -221,24 +242,25 @@ func cliInput(spellMap map[string]Spell) {
 			}
 		case input == "list":
 			fmt.Printf("Filters: %v\n", filters)
-			fmt.Println(filterList(spellMap, filters))
+			fmt.Println(filterList(spellMap, filters, sortF))
 		default:
+			// Need another function to check for spellname, or start of spellname, then return list.
 			s, ok := spellMap[input]
 			if ok {
 				fmt.Println(s)
 			} else {
-				fmt.Println("Spell not found. Please try again.")
+				fmt.Println("Command not recognized. Please try again.")
 			}
 
 		}
 	}
 }
 
-func filterList(spellMap map[string]Spell, filters []string) (output string) {
-	fMap := make(map[string]Spell)
+func filterList(spellMap map[string]Spell, filters []string, sortFunction string) (output string) {
+	spells := make([]Spell, 0)
 
 	var test bool
-	for n, s := range spellMap {
+	for _, s := range spellMap {
 		test = true
 	spellmap:
 		for _, f := range filters {
@@ -286,18 +308,45 @@ func filterList(spellMap map[string]Spell, filters []string) (output string) {
 			}
 		}
 		if test {
-			fMap[n] = s
+			spells = append(spells, s)
 		}
 	}
+	if sortFunction == "name" {
+		sort.Sort(ByName(spells))
+	} else if sortFunction == "level" {
+		sort.Sort(ByLevel(spells))
 
-	for _, f := range fMap {
-		output += fmt.Sprintf("%v\n\n", f)
+	}
+
+	for _, s := range spells {
+		output += fmt.Sprintf("%v\n\n", s)
 	}
 	return output
 }
 
 func bold(s string) string {
 	return "\033[31m" + s + "\033[0m"
+}
+
+// ByName implements sort.Interface for []Spell based on alphabetical sort on the Name field
+type ByName []Spell
+
+func (a ByName) Len() int           { return len(a) }
+func (a ByName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByName) Less(i, j int) bool { return a[i].Name < a[j].Name }
+
+// ByLevel implements sort.Interface for []Spell based on level, then alphabetical name.
+type ByLevel []Spell
+
+func (a ByLevel) Len() int      { return len(a) }
+func (a ByLevel) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
+func (a ByLevel) Less(i, j int) bool {
+	if a[i].Level == a[j].Level {
+		return a[i].Name < a[j].Name
+	} else {
+		return a[i].Level < a[j].Level
+	}
 }
 
 // TODO:
