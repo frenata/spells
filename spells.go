@@ -15,6 +15,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -39,7 +40,11 @@ type Spell struct {
 // String pretty prints the Spell struct.
 func (s Spell) String() string {
 	var output string
-	output += bold(s.Name)
+	if runtime.GOOS == "linux" {
+		output += bold(s.Name)
+	} else {
+		output += s.Name
+	}
 	if s.Level == 0 {
 		output += fmt.Sprintf(", %v cantrip for %v\n", s.School, s.Class)
 	} else {
