@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 
@@ -102,8 +103,11 @@ func PrintSorted(list []spells.Spell, sorter string) (output string) {
 	}
 
 	for _, s := range list {
-		reg := regexp.MustCompile("^.*?\\,")
-		str := reg.ReplaceAllStringFunc(s.String(), bold)
+		str := s.String()
+		if runtime.GOOS != "windows" {
+			reg := regexp.MustCompile("^.*?\\,")
+			str = reg.ReplaceAllStringFunc(s.String(), bold)
+		}
 		output += fmt.Sprintf("%v\n\n", str)
 	}
 	return output
