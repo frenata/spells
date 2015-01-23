@@ -14,7 +14,7 @@ import (
 	"github.com/frenata/spells"
 )
 
-// player input loop
+// user input loop
 func cliInput(sm *spells.SpellMap) {
 	var sorter string = "level"
 	cliReader := bufio.NewReader(os.Stdin)
@@ -34,6 +34,7 @@ func cliInput(sm *spells.SpellMap) {
 			fmt.Println("  'spellname'       - prints spell information")
 			fmt.Println("  sort              - directs the program how to sort Spells")
 			fmt.Println("  filter            - filters the list according to request")
+			fmt.Println("  list              - prints the current filtered list of spells")
 			fmt.Println("  help              - prints this help")
 		case strings.HasPrefix(input, "sort"):
 			if input == "sort" {

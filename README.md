@@ -6,6 +6,7 @@ Features:
 * Using the filter system allows the user to specify filters and print lists of spells that match.
 * Autocompletion of names.
 * Sorting functions to allow for sorting by level or name.
+* User config file to specify CSV files for autoloading on program start.
 
 TODO:
 * Better error handling of malformed csv?

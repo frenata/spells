@@ -231,6 +231,16 @@ func (sm *SpellMap) Filter() (spells []Spell) {
 				num = -1
 			}
 			switch {
+			case f == "bonus":
+				if !strings.Contains(s.Time, "bonus") {
+					test = false
+					break spellmap
+				}
+			case f == "reaction":
+				if !strings.Contains(s.Time, "reaction") {
+					test = false
+					break spellmap
+				}
 			case f == "ritual":
 				if !s.Ritual {
 					test = false
