@@ -2,8 +2,11 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path"
 	"regexp"
 	"sort"
 	"strings"
@@ -109,15 +112,33 @@ func bold(s string) string {
 	return "\033[31m" + s[:len(s)-1] + "\033[0m" + ","
 }
 
-var defFiles = []string{
-	"csv/bard.csv",
-	"csv/cleric.csv",
-	"csv/druid.csv",
-	"csv/paladin.csv",
-	"csv/ranger.csv",
-	"csv/sorcerer.csv",
-	"csv/warlock.csv",
-	"csv/wizard.csv",
+func readConfig(file string) (list []string, err error) {
+	dir, _ := os.Getwd()
+
+	b, err := ioutil.ReadFile(file)
+	if err != nil {
+		return nil, fmt.Errorf("No config file found: %v\nNo default CSV files will be loaded.\n", path.Join(dir, "spells.cfg"))
+	}
+	s := string(b)
+
+	lines := strings.Split(s, "\n")
+	for _, l := range lines {
+		if strings.HasPrefix(l, "dir=") {
+			dir = strings.TrimPrefix(l, "dir=")
+		}
+		if strings.HasPrefix(l, "list=") {
+			files := strings.Split(strings.TrimPrefix(l, "list="), ";")
+			for _, f := range files {
+				list = append(list, path.Join(dir, f))
+			}
+		}
+	}
+
+	if len(list) == 0 { // No files read.
+		return nil, errors.New("No valid CSV files found in spells.cfg file.")
+	}
+
+	return list, nil
 }
 
 // TODO:
@@ -129,6 +150,15 @@ var defFiles = []string{
 func main() {
 	fmt.Println("Welcome to Spells!")
 	s := spells.NewSpellMap()
-	s.SetDefaults(defFiles)
+
+	def, err := readConfig("spells.cfg")
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		s.SetDefaults(def)
+		s.LoadSpells("", true)
+		fmt.Println("Default CSV files loaded.")
+	}
+
 	cliInput(s)
 }
