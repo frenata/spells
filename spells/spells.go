@@ -160,7 +160,7 @@ func (sm *SpellMap) readAll(filename string) error {
 	reader.Comma = ';'
 	reader.TrimLeadingSpace = true
 	reader.LazyQuotes = true
-	reader.FieldsPerRecord = 8
+	reader.FieldsPerRecord = 9 //8
 
 	for {
 		class := strings.TrimSuffix(path.Base(filename), ".csv")

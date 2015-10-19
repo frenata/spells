@@ -12,7 +12,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/frenata/spells"
+	"github.com/frenata/spells/spells"
 )
 
 // user input loop
