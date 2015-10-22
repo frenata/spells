@@ -83,13 +83,13 @@ func cliInput(sm *spells.SpellMap) {
 			}
 		case input == "list" || input == "ls":
 			fmt.Printf("Filters: %v\n", sm.Filters)
-			fmt.Println(PrintSorted(sm.Filter(), sorter))
+			pipeLess(fmt.Sprint(PrintSorted(sm.Filter(), sorter)))
 		default:
 			list := sm.KeySearch(input)
 			if len(list) == 0 {
 				fmt.Println("No spell or command not recognized. Please try again.")
 			} else {
-				fmt.Println(PrintSorted(list, sorter))
+				pipeLess(fmt.Sprint(PrintSorted(list, sorter)))
 			}
 		}
 	}
